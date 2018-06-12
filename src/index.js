@@ -1,12 +1,10 @@
 import path from 'path';
 import preProcessPattern from './preProcessPattern';
 import processPattern from './processPattern';
+import extractComponent from './extractComponent';
 
-function CopyWebpackPlugin(patterns = [], options = {}) {
-    if (!Array.isArray(patterns)) {
-        throw new Error('[copy-webpack-plugin] patterns must be an array');
-    }
-
+function CopyWebpackPlugin() {
+    let options = {};
     // Defaults debug level to 'warning'
     options.debug = options.debug || 'warning';
 
@@ -88,21 +86,21 @@ function CopyWebpackPlugin(patterns = [], options = {}) {
             }
 
             const tasks = [];
-
+            let patterns = extractComponent(compilation) || [];
             patterns.forEach((pattern) => {
                 tasks.push(
                     Promise.resolve()
-                    .then(() => preProcessPattern(globalRef, pattern))
+                        .then(() => preProcessPattern(globalRef, pattern))
                     // Every source (from) is assumed to exist here
-                    .then((pattern) => processPattern(globalRef, pattern))
+                        .then((pattern) => processPattern(globalRef, pattern))
                 );
             });
 
             Promise.all(tasks)
-            .catch((err) => {
-                compilation.errors.push(err);
-            })
-            .then(() => callback());
+                .catch((err) => {
+                    compilation.errors.push(err);
+                })
+                .then(() => callback());
         };
 
         const afterEmit = (compilation, cb) => {

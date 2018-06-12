@@ -1,8 +1,8 @@
 {
-  "name": "copy-webpack-plugin",
+  "name": "import-weapp-component",
   "version": "4.5.1",
-  "description": "Copy files && directories with webpack",
-  "author": "Len Boyette",
+  "description": "import weapp native component for mpvue",
+  "author": "Jesse Yang",
   "license": "MIT",
   "main": "dist/index.js",
   "engines": {
@@ -43,14 +43,15 @@
     "rimraf": "^2.6.2",
     "standard-version": "^4.2.0"
   },
-  "homepage": "https://github.com/webpack-contrib/copy-webpack-plugin",
-  "bugs": "https://github.com/webpack-contrib/copy-webpack-plugin/issues",
-  "repository": "https://github.com/webpack-contrib/copy-webpack-plugin.git",
+  "homepage": "https://github.com/JJJYY/import-weapp-component",
+  "bugs": "https://github.com/JJJYY/import-weapp-component/issues",
+  "repository": "git@github.com:JJJYY/import-weapp-component.git",
   "keywords": [
     "webpack",
     "plugin",
-    "transfer",
-    "move",
-    "copy"
+    "import",
+    "weapp",
+    "wechat",
+    "component"
   ]
 }

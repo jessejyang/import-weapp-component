@@ -1,3 +1,13 @@
+Forked from [webpack-contrib/copy-webpack-plugin](https://github.com/webpack-contrib/copy-webpack-plugin)
+
+Author: Len Boyette
+
+License: MIT
+
+用法：
+根据`json`文件`usingComponents`自动引入组件
+
+------
 [![npm][npm]][npm-url]
 [![node][node]][node-url]
 [![deps][deps]][deps-url]
