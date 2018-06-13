@@ -34,7 +34,7 @@ npm i -D import-weapp-component
 
 **webpack.config.js**
 ```js
-const ImportComponent = require('copy-webpack-plugin')
+const ImportComponent = require('import-weapp-component')
 
 const config = {
   plugins: [
