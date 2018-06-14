@@ -1,6 +1,8 @@
 import path from 'path';
 import fs from 'fs';
 
+let globalCompilation // 主要用于`errors.push`
+
 function isAbsolute (form) {
     return path.isAbsolute(form);
 }
@@ -8,11 +10,12 @@ function resolve (...paths) {
     return path.resolve(...paths);
 }
 
-function getUsingComponents (content, compilation) {
+function getUsingComponents (content) {
     try {
-        return JSON.parse(content)['usingComponents'];
+        return JSON.parse(content)['usingComponents'] || {}; // 防止返回undefined
     } catch (e) {
-        compilation.errors.push(e);
+        globalCompilation.errors.push(e);
+        return {} // 解析出错，返回空
     }
 }
 
@@ -20,20 +23,21 @@ const jsonRE = /\/.+\.json$/;
 function getFileDir (file) { // must be json file
     return file.slice(0, file.lastIndexOf('/'));
 }
-// function getComponents (assets, compilation) {
-//     const file = Object.keys(assets).find(f => jsonRE.test(f));
-//     let components = [];
-//     if (file) {
-//         let names = getUsingComponents(assets[file].source(), compilation);
-//         if (names) {
-//             components = Object.keys(names).map(name => names[name]);
-//         }
-//     }
-//     return components;
-// }
+function getFileName (path) {
+    return path.slice(path.lastIndexOf('/') + 1)
+}
 
-function generatorPattern (from, to) {
+function addComponents (info, components, parent) { // info: <path | json>
+  if (fs.existsSync(info)) { // path read file
+    info = fs.readFileSync(info, 'utf8')
+  }
+  let names = getUsingComponents(info);
+  components.push(...Object.keys(names).map(name => parent ? resolve(parent, names[name]) : names[name]));
+}
+
+function generatorPattern (from, to, components, parent) {
     if (fs.existsSync(from)) {
+        addComponents(`${from}/index.json`, components, getFileDir(parent))
         return {
             from,
             to,
@@ -41,17 +45,20 @@ function generatorPattern (from, to) {
         };
     } else if (fs.existsSync(`${from}.js`)) {
         let fromDir = getFileDir(from);
+        let fileName = getFileName(from);
+        addComponents(`${from}.json`, components, getFileDir(parent))
         return {
             from: fromDir,
             to: getFileDir(to),
-            test: new RegExp(`${from.replace(fromDir).slice(1)}.(json|js|wxml|wxss)$`)
+            test: new RegExp(`${fileName}.(json|js|wxml|wxss)$`)
         };
     }
 }
 
 export default function extractComponent (compilation) {
-    const { entries } = compilation;
-    const projectContext = compilation.options.context;
+    globalCompilation = compilation
+    const { entries, options: { context: projectContext } } = compilation;
+
     let patterns = [];
     for (let i = 0; i < entries.length; i++) {
         let context = entries[i].context;
@@ -61,10 +68,7 @@ export default function extractComponent (compilation) {
         const file = Object.keys(assets).find(f => jsonRE.test(f));
         let components = [];
         if (file) {
-            let names = getUsingComponents(assets[file].source(), compilation);
-            if (names) {
-                components = Object.keys(names).map(name => names[name]);
-            }
+            addComponents(assets[file].source(), components)
         }
 
         for (let j = 0; j < components.length; j++) {
@@ -76,10 +80,10 @@ export default function extractComponent (compilation) {
 
                 let to = isAbsolute(path)
                     ? path
-                    : resolve(`/${getFileDir(file)}`, path);
+                    : resolve(`/${getFileDir(file)}`, path); // 以输出路径为最上级路径
                 to = to.slice(1); // 去除 / 绝对定位参照
 
-                let pattern = generatorPattern(from, to);
+                let pattern = generatorPattern(from, to, components, components[j]);
                 if (pattern) patterns.push(pattern);
             }
         }
