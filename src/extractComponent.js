@@ -32,7 +32,7 @@ function addComponents (info, components, parent) { // info: <path | json>
     info = fs.readFileSync(info, 'utf8')
   }
   let names = getUsingComponents(info);
-  components.push(...Object.keys(names).map(name => parent ? resolve(parent, names[name]) : names[name]));
+  components.push(...Object.keys(names).map(name => parent ? path.join(parent, names[name]) : names[name]));
 }
 
 function generatorPattern (from, to, components, parent) {
