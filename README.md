@@ -4,7 +4,7 @@ Author: Len Boyette
 
 License: MIT
 
-简介：根据`json`文件`usingComponents`自动引入组件
+简介：根据`json`文件`usingComponents`自动引入组件
 
 -----------
 
