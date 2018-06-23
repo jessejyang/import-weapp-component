@@ -22,7 +22,7 @@ function CopyWebpackPlugin() {
             level = level || 1;
         }
         if (level <= debugLevelIndex) {
-            console.log('[copy-webpack-plugin] ' + msg); // eslint-disable-line no-console
+            console.log('[import-weapp-component] ' + msg); // eslint-disable-line no-console
         }
     }
 

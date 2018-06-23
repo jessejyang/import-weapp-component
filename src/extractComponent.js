@@ -21,7 +21,7 @@ function getUsingComponents (content) {
 
 const jsonRE = /\/.+\.json$/;
 function getFileDir (file) { // must be json file
-    return file.slice(0, file.lastIndexOf('/'));
+    return path.parse(file).dir;
 }
 function getFileName (path) {
     return path.slice(path.lastIndexOf('/') + 1)
