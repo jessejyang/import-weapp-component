@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="4.5.5"></a>
+## [4.5.5](https://github.com/JJJYY/import-weapp-component/compare/v4.5.1...v4.5.5) (2018-07-06)
+
+
+### Bug Fixes
+
+* [#2](https://github.com/JJJYY/import-weapp-component/issues/2) native dependencies not bundle ([84a67e1](https://github.com/JJJYY/import-weapp-component/commit/84a67e1))
+* [#3](https://github.com/JJJYY/import-weapp-component/issues/3) relative path import ([93aa211](https://github.com/JJJYY/import-weapp-component/commit/93aa211))
+* add import component entry ([499c755](https://github.com/JJJYY/import-weapp-component/commit/499c755))
+* allow square brackets in path ([#264](https://github.com/JJJYY/import-weapp-component/issues/264)) ([3ef5b6c](https://github.com/JJJYY/import-weapp-component/commit/3ef5b6c)), closes [#231](https://github.com/JJJYY/import-weapp-component/issues/231)
+* fix copy webpack test ([331c667](https://github.com/JJJYY/import-weapp-component/commit/331c667))
+* keep faces together with weapp import component ([5ab2bd7](https://github.com/JJJYY/import-weapp-component/commit/5ab2bd7))
+* windows get file dir from path ([deaa923](https://github.com/JJJYY/import-weapp-component/commit/deaa923))
+
+
+### Features
+
+* add auto copy component to output ([f3e48fe](https://github.com/JJJYY/import-weapp-component/commit/f3e48fe))
+* throw error when path not exist ([94aa056](https://github.com/JJJYY/import-weapp-component/commit/94aa056))
+
+
+
 <a name="4.5.1"></a>
 ## [4.5.1](https://github.com/webpack-contrib/copy-webpack-plugin/compare/v4.5.0...v4.5.1) (2018-03-09)
 
