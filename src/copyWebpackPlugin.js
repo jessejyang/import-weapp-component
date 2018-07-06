@@ -3,8 +3,11 @@ import preProcessPattern from './preProcessPattern';
 import processPattern from './processPattern';
 import extractComponent from './extractComponent';
 
-function CopyWebpackPlugin() {
-    let options = {};
+function CopyWebpackPlugin(patterns = [], options = {}) {
+    if (!Array.isArray(patterns)) {
+        throw new Error('[copy-webpack-plugin] patterns must be an array');
+    }
+
     // Defaults debug level to 'warning'
     options.debug = options.debug || 'warning';
 
@@ -22,7 +25,7 @@ function CopyWebpackPlugin() {
             level = level || 1;
         }
         if (level <= debugLevelIndex) {
-            console.log('[import-weapp-component] ' + msg); // eslint-disable-line no-console
+            console.log('[copy-webpack-plugin] ' + msg); // eslint-disable-line no-console
         }
     }
 
@@ -86,7 +89,7 @@ function CopyWebpackPlugin() {
             }
 
             const tasks = [];
-            let patterns = extractComponent(compilation) || [];
+            patterns = patterns.concat(extractComponent(compilation) || []);
             patterns.forEach((pattern) => {
                 tasks.push(
                     Promise.resolve()

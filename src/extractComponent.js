@@ -13,7 +13,7 @@ function getFileName (path) {
 
 function pushError (err) {
     err = typeof err === 'string' ? new Error(err) : err;
-    globalCompilation.push(err);
+    globalCompilation.errors.push(err);
 }
 
 function getUsingComponents (content, filePath) {
@@ -66,34 +66,38 @@ function generatorPattern (from, to, components, parent) {
 
 export default function extractComponent (compilation) {
     globalCompilation = compilation;
-    const { entries, options: { context: projectContext } } = compilation;
-
     let patterns = [];
-    for (let i = 0; i < entries.length; i++) {
-        let context = entries[i].context;
-        let assets = entries[i].assets;
 
-        // 从 assets 获取所有 components 路径
-        const file = Object.keys(assets).find(f => jsonRE.test(f));
-        let components = [];
-        if (file) {
-            addComponentsFromJson(assets[file].source(), components, null, file);
-        }
+    const entries = compilation.entries || [];
+    const projectContext = (compilation.options || {}).context || '';
 
-        for (let j = 0; j < components.length; j++) {
-            let path = components[j];
-            if (path) {
-                let from = path.isAbsolute(path)
-                    ? `${projectContext}${path}`
-                    : path.resolve(context, path);
-
-                let to = path.isAbsolute(path)
-                    ? path
-                    : path.resolve(`/${getFileDir(file)}`, path); // 以输出路径为最上级路径
-                to = to.slice(1); // 去除 / 绝对定位参照
-
-                let pattern = generatorPattern(from, to, components, components[j]);
-                if (pattern) patterns.push(pattern);
+    if (entries.length && projectContext) {
+        for (let i = 0; i < entries.length; i++) {
+            let context = entries[i].context;
+            let assets = entries[i].assets;
+    
+            // 从 assets 获取所有 components 路径
+            const file = Object.keys(assets).find(f => jsonRE.test(f));
+            let components = [];
+            if (file) {
+                addComponentsFromJson(assets[file].source(), components, null, file);
+            }
+    
+            for (let j = 0; j < components.length; j++) {
+                let path = components[j];
+                if (path) {
+                    let from = path.isAbsolute(path)
+                        ? `${projectContext}${path}`
+                        : path.resolve(context, path);
+    
+                    let to = path.isAbsolute(path)
+                        ? path
+                        : path.resolve(`/${getFileDir(file)}`, path); // 以输出路径为最上级路径
+                    to = to.slice(1); // 去除 / 绝对定位参照
+    
+                    let pattern = generatorPattern(from, to, components, components[j]);
+                    if (pattern) patterns.push(pattern);
+                }
             }
         }
     }

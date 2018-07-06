@@ -1,12 +1,12 @@
 /* globals describe, it, __dirname */
 import {
-    expect
+  expect
 } from 'chai';
 import NodeJsInputFileSystem from 'enhanced-resolve/lib/NodeJsInputFileSystem';
 import CachedInputFileSystem from 'enhanced-resolve/lib/CachedInputFileSystem';
 
 // ensure we don't mess up classic imports
-const CopyWebpackPlugin = require('./../dist/index');
+const CopyWebpackPlugin = require('./../dist/copyWebpackPlugin');
 
 import fs from 'fs';
 import path from 'path';
@@ -57,7 +57,7 @@ class MockCompiler {
 }
 
 describe('apply function', () => {
-    // Ideally we pass in patterns and confirm the resulting assets
+  // Ideally we pass in patterns and confirm the resulting assets
     const run = (opts) => {
         return new Promise((resolve, reject) => {
             if (Array.isArray(opts.patterns)) {
@@ -69,12 +69,12 @@ describe('apply function', () => {
             }
             const plugin = CopyWebpackPlugin(opts.patterns, opts.options);
 
-            // Get a mock compiler to pass to plugin.apply
+          // Get a mock compiler to pass to plugin.apply
             const compiler = opts.compiler || new MockCompiler();
 
             plugin.apply(compiler);
 
-            // Call the registered function with a mock compilation and callback
+          // Call the registered function with a mock compilation and callback
             const compilation = Object.assign({
                 assets: {},
                 contextDependencies: [],
@@ -82,68 +82,68 @@ describe('apply function', () => {
                 fileDependencies: []
             }, opts.compilation);
 
-            // Execute the functions in series
+          // Execute the functions in series
             return Promise.resolve()
-                .then(() => {
-                    return new Promise((res, rej) => {
-                        try {
-                            compiler.emitFn(compilation, res);
-                        } catch (error) {
-                            rej(error);
-                        }
-                    });
-                })
-                .then(() => {
-                    return new Promise((res, rej) => {
-                        try {
-                            compiler.afterEmitFn(compilation, res);
-                        } catch (error) {
-                            rej(error);
-                        }
-                    });
-                })
               .then(() => {
-                  if (opts.expectedErrors) {
-                      expect(compilation.errors).to.deep.equal(opts.expectedErrors);
-                  } else if (compilation.errors.length > 0) {
-                      throw compilation.errors[0];
-                  }
-                  resolve(compilation);
+                  return new Promise((res, rej) => {
+                      try {
+                          compiler.emitFn(compilation, res);
+                      } catch (error) {
+                          rej(error);
+                      }
+                  });
               })
-              .catch(reject);
+              .then(() => {
+                  return new Promise((res, rej) => {
+                      try {
+                          compiler.afterEmitFn(compilation, res);
+                      } catch (error) {
+                          rej(error);
+                      }
+                  });
+              })
+            .then(() => {
+                if (opts.expectedErrors) {
+                    expect(compilation.errors).to.deep.equal(opts.expectedErrors);
+                } else if (compilation.errors.length > 0) {
+                    throw compilation.errors[0];
+                }
+                resolve(compilation);
+            })
+            .catch(reject);
         });
     };
 
     const runEmit = (opts) => {
         return run(opts)
-            .then((compilation) => {
-                if (opts.expectedAssetKeys && opts.expectedAssetKeys.length > 0) {
-                    expect(compilation.assets).to.have.all.keys(opts.expectedAssetKeys.map(removeIllegalCharacterForWindows));
-                } else {
-                    expect(compilation.assets).to.deep.equal({});
-                }
+          .then((compilation) => {
+              if (opts.expectedAssetKeys && opts.expectedAssetKeys.length > 0) {
+                  expect(compilation.assets).to.have.all.keys(opts.expectedAssetKeys.map(removeIllegalCharacterForWindows));
+              } else {
+                  expect(compilation.assets).to.deep.equal({});
+              }
 
-                if (opts.expectedAssetContent) {
-                    for (var key in opts.expectedAssetContent) {
-                        expect(compilation.assets[key]).to.exist;
-                        if (compilation.assets[key]) {
-                            let expectedContent = opts.expectedAssetContent[key];
+              if (opts.expectedAssetContent) {
+                  for (var key in opts.expectedAssetContent) {
+                      expect(compilation.assets[key]).to.exist;
+                      if (compilation.assets[key]) {
+                          let expectedContent = opts.expectedAssetContent[key];
 
-                            if (!Buffer.isBuffer(expectedContent)) {
-                                expectedContent = new Buffer(expectedContent);
-                            }
+                          if (!Buffer.isBuffer(expectedContent)) {
+                              expectedContent = new Buffer(expectedContent);
+                          }
 
-                            let compiledContent = compilation.assets[key].source();
+                          let compiledContent = compilation.assets[key].source();
 
-                            if (!Buffer.isBuffer(compiledContent)) {
-                                compiledContent = new Buffer(compiledContent);
-                            }
+                          if (!Buffer.isBuffer(compiledContent)) {
+                              compiledContent = new Buffer(compiledContent);
+                          }
 
-                            expect(Buffer.compare(expectedContent, compiledContent)).to.equal(0);
-                        }
-                    }
-                }
-            });
+                          expect(Buffer.compare(expectedContent, compiledContent)).to.equal(0);
+                      }
+                  }
+              }
+          });
     };
 
     const runForce = (opts) => {
@@ -160,11 +160,11 @@ describe('apply function', () => {
     };
 
     const runChange = (opts) => {
-        // Create two test files
+      // Create two test files
         fs.writeFileSync(opts.newFileLoc1, 'file1contents');
         fs.writeFileSync(opts.newFileLoc2, 'file2contents');
 
-        // Create a reference to the compiler
+      // Create a reference to the compiler
         const compiler = new MockCompiler();
         const compilation = {
             assets: {},
@@ -178,38 +178,38 @@ describe('apply function', () => {
             options: opts.options,
             patterns: opts.patterns
         })
-        .then(() => {
-            // Change a file
-            fs.appendFileSync(opts.newFileLoc1, 'extra');
+      .then(() => {
+          // Change a file
+          fs.appendFileSync(opts.newFileLoc1, 'extra');
 
-            // Trigger another compile
-            return new Promise((res) => {
-                compiler.emitFn(compilation, res);
-            });
-        })
-        .then(() => {
-            if (opts.expectedAssetKeys && opts.expectedAssetKeys.length > 0) {
-                expect(compilation.assets).to.have.all.keys(opts.expectedAssetKeys);
-            } else {
-                expect(compilation.assets).to.deep.equal({});
-            }
-        })
-        .then(() => {
-            fs.unlinkSync(opts.newFileLoc1);
-            fs.unlinkSync(opts.newFileLoc2);
-        });
+          // Trigger another compile
+          return new Promise((res) => {
+              compiler.emitFn(compilation, res);
+          });
+      })
+      .then(() => {
+          if (opts.expectedAssetKeys && opts.expectedAssetKeys.length > 0) {
+              expect(compilation.assets).to.have.all.keys(opts.expectedAssetKeys);
+          } else {
+              expect(compilation.assets).to.deep.equal({});
+          }
+      })
+      .then(() => {
+          fs.unlinkSync(opts.newFileLoc1);
+          fs.unlinkSync(opts.newFileLoc2);
+      });
     };
 
-    // Use then and catch explicitly, so errors
-    // aren't seen as unhandled exceptions
+  // Use then and catch explicitly, so errors
+  // aren't seen as unhandled exceptions
     describe('error handling', () => {
         it('doesn\'t throw an error if no patterns are passed', (done) => {
             runEmit({
                 expectedAssetKeys: [],
                 patterns: undefined // eslint-disable-line no-undefined
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('throws an error if the patterns are an object', () => {
@@ -239,8 +239,8 @@ describe('apply function', () => {
                     from: '*.txt'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can use a bracketed glob to move a file to the root directory', (done) => {
@@ -255,8 +255,8 @@ describe('apply function', () => {
                     from: '{file.txt,noextension,directory/**/*}'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can use a glob object to move a file to the root directory', (done) => {
@@ -270,8 +270,8 @@ describe('apply function', () => {
                     }
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can use a glob to move multiple files to the root directory', (done) => {
@@ -292,8 +292,8 @@ describe('apply function', () => {
                     from: '**/*'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can use a glob to move multiple files to a non-root directory', (done) => {
@@ -315,8 +315,8 @@ describe('apply function', () => {
                     to: 'nested'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can use a glob to move multiple files in a different relative context to a non-root directory', (done) => {
@@ -331,8 +331,8 @@ describe('apply function', () => {
                     to: 'nested'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can use a direct glob to move multiple files in a different relative context with special characters', (done) => {
@@ -347,8 +347,8 @@ describe('apply function', () => {
                     from: { glob: '**/*' }
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can use a glob to move multiple files in a different relative context with special characters', (done) => {
@@ -363,8 +363,8 @@ describe('apply function', () => {
                     from: '**/*'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can use a glob to flatten multiple files in a relative context to a non-root directory', (done) => {
@@ -380,8 +380,8 @@ describe('apply function', () => {
                     to: 'nested'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can use a glob to move multiple files in a different absolute context to a non-root directory', (done) => {
@@ -396,8 +396,8 @@ describe('apply function', () => {
                     to: 'nested'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can use a glob with a full path to move a file to the root directory', (done) => {
@@ -409,8 +409,8 @@ describe('apply function', () => {
                     from: path.join(HELPER_DIR, '*.txt')
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can use a glob with a full path to move multiple files to the root directory', (done) => {
@@ -428,8 +428,8 @@ describe('apply function', () => {
                     from: path.join(HELPER_DIR, '**/*.txt')
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can use a glob to move multiple files to a non-root directory with name, hash and ext', (done) => {
@@ -451,8 +451,8 @@ describe('apply function', () => {
                     to: 'nested/[path][name]-[hash:6].[ext]'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can flatten or normalize glob matches', (done) => {
@@ -469,8 +469,8 @@ describe('apply function', () => {
                     to: '[1]-[2].[ext]'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
     });
 
@@ -484,8 +484,8 @@ describe('apply function', () => {
                     from: 'file.txt'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can transform a file', (done) => {
@@ -504,8 +504,8 @@ describe('apply function', () => {
                     }
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('warns when file not found', (done) => {
@@ -518,8 +518,8 @@ describe('apply function', () => {
                     from: 'nonexistent.txt'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('warns when tranform failed', (done) => {
@@ -535,8 +535,8 @@ describe('apply function', () => {
                     }
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can use an absolute path to move a file to the root directory', (done) => {
@@ -550,8 +550,8 @@ describe('apply function', () => {
                     from: absolutePath
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can move a file to a new directory without a forward slash', (done) => {
@@ -564,8 +564,8 @@ describe('apply function', () => {
                     to: 'newdirectory'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can move a file to the root directory using an absolute to', (done) => {
@@ -578,8 +578,8 @@ describe('apply function', () => {
                     to: BUILD_DIR
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('allows absolute to if outpath is defined with webpack-dev-server', (done) => {
@@ -598,8 +598,8 @@ describe('apply function', () => {
                     to: BUILD_DIR
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('throws an error when output path isn\'t defined with webpack-dev-server', (done) => {
@@ -610,15 +610,15 @@ describe('apply function', () => {
                 expectedAssetKeys: [],
                 expectedErrors: [
                     '[copy-webpack-plugin] Using older versions of webpack-dev-server, devServer.outputPath must be ' +
-                    'defined to write to absolute paths'
+                  'defined to write to absolute paths'
                 ],
                 patterns: [{
                     from: 'file.txt',
                     to: BUILD_DIR
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can move a file to a new directory using an absolute to', (done) => {
@@ -631,8 +631,8 @@ describe('apply function', () => {
                     to: TEMP_DIR
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can move a file to a new file using an absolute to', (done) => {
@@ -647,8 +647,8 @@ describe('apply function', () => {
                     to: absolutePath
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can move a file to a new directory with a forward slash', (done) => {
@@ -661,8 +661,8 @@ describe('apply function', () => {
                     to: 'newdirectory/'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can move a file with a context containing special characters', (done) => {
@@ -675,8 +675,8 @@ describe('apply function', () => {
                     context: '[special?directory]'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can move a file with special characters with a context containing special characters', (done) => {
@@ -689,8 +689,8 @@ describe('apply function', () => {
                     context: '[special?directory]'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can move a file to a new directory with an extension', (done) => {
@@ -704,8 +704,8 @@ describe('apply function', () => {
                     toType: 'dir'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can move a file to a new directory with an extension and forward slash', (done) => {
@@ -718,8 +718,8 @@ describe('apply function', () => {
                     to: 'newdirectory.ext/'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can move a file to a new file with a different name', (done) => {
@@ -732,8 +732,8 @@ describe('apply function', () => {
                     to: 'newname.txt'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can move a file to a new file with no extension', (done) => {
@@ -747,8 +747,8 @@ describe('apply function', () => {
                     toType: 'file'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can move a file without an extension to a file using a template', (done) => {
@@ -761,8 +761,8 @@ describe('apply function', () => {
                     to: '[name][ext].newext'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can move a file with a ".bin" extension using a template', (done) => {
@@ -775,8 +775,8 @@ describe('apply function', () => {
                     to: '[name].[ext]'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can move a nested file to the root directory', (done) => {
@@ -788,8 +788,8 @@ describe('apply function', () => {
                     from: 'directory/directoryfile.txt'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can use an absolute path to move a nested file to the root directory', (done) => {
@@ -803,8 +803,8 @@ describe('apply function', () => {
                     from: absolutePath
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can move a nested file to a new directory', (done) => {
@@ -817,8 +817,8 @@ describe('apply function', () => {
                     to: 'newdirectory'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can use an absolute path to move a nested file to a new directory', (done) => {
@@ -833,8 +833,8 @@ describe('apply function', () => {
                     to: 'newdirectory'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('won\'t overwrite a file already in the compilation', (done) => {
@@ -847,8 +847,8 @@ describe('apply function', () => {
                     from: 'file.txt'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can force overwrite of a file already in the compilation', (done) => {
@@ -862,8 +862,8 @@ describe('apply function', () => {
                     from: 'file.txt'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('adds the file to the watch list', (done) => {
@@ -872,13 +872,13 @@ describe('apply function', () => {
                     from: 'file.txt'
                 }]
             })
-            .then((compilation) => {
-                const absFrom = path.join(HELPER_DIR, 'file.txt');
+          .then((compilation) => {
+              const absFrom = path.join(HELPER_DIR, 'file.txt');
 
-                expect(compilation.fileDependencies).to.have.members([absFrom]);
-            })
-            .then(done)
-            .catch(done);
+              expect(compilation.fileDependencies).to.have.members([absFrom]);
+          })
+          .then(done)
+          .catch(done);
         });
 
         it('only include files that have changed', (done) => {
@@ -894,8 +894,8 @@ describe('apply function', () => {
                     from: 'tempfile2.txt'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('ignores files in pattern', (done) => {
@@ -917,8 +917,8 @@ describe('apply function', () => {
                     ]
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('allows pattern to contain name, hash or ext', (done) => {
@@ -931,8 +931,8 @@ describe('apply function', () => {
                     to: 'directory/[name]-[hash:6].[ext]'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('transform with promise', (done) => {
@@ -952,8 +952,8 @@ describe('apply function', () => {
                     }
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('same file to multiple targets', (done) => {
@@ -970,8 +970,8 @@ describe('apply function', () => {
                     to: 'second/file.txt'
                 }]
             })
-              .then(done)
-              .catch(done);
+            .then(done)
+            .catch(done);
         });
     });
 
@@ -987,8 +987,8 @@ describe('apply function', () => {
                     from: 'directory'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can move a directory\'s contents to the root directory using from with special characters', (done) => {
@@ -1002,8 +1002,8 @@ describe('apply function', () => {
                     from: (path.sep === '/' ? '[special?directory]' : '[specialdirectory]')
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can move a directory\'s contents to the root directory using context with special characters', (done) => {
@@ -1018,8 +1018,8 @@ describe('apply function', () => {
                     context: '[special?directory]'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('warns when directory not found', (done) => {
@@ -1032,8 +1032,8 @@ describe('apply function', () => {
                     from: 'nonexistent'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can use an absolute path to move a directory\'s contents to the root directory', (done) => {
@@ -1049,8 +1049,8 @@ describe('apply function', () => {
                     from: absolutePath
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can move a directory\'s contents to a new directory', (done) => {
@@ -1065,8 +1065,8 @@ describe('apply function', () => {
                     to: 'newdirectory'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can move a directory\'s contents to a new directory using a pattern context', (done) => {
@@ -1080,8 +1080,8 @@ describe('apply function', () => {
                     to: 'newdirectory'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can flatten a directory\'s contents to a new directory', (done) => {
@@ -1097,8 +1097,8 @@ describe('apply function', () => {
                     to: 'newdirectory'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can move a directory\'s contents to a new directory using an absolute to', (done) => {
@@ -1113,8 +1113,8 @@ describe('apply function', () => {
                     to: TEMP_DIR
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can move a nested directory\'s contents to the root directory', (done) => {
@@ -1126,8 +1126,8 @@ describe('apply function', () => {
                     from: 'directory/nested'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can move a nested directory\'s contents to a new directory', (done) => {
@@ -1140,8 +1140,8 @@ describe('apply function', () => {
                     to: 'newdirectory'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can use an absolute path to move a nested directory\'s contents to a new directory', (done) => {
@@ -1156,8 +1156,8 @@ describe('apply function', () => {
                     to: 'newdirectory'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('won\'t overwrite a file already in the compilation', (done) => {
@@ -1170,8 +1170,8 @@ describe('apply function', () => {
                     from: 'directory'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can force overwrite of a file already in the compilation', (done) => {
@@ -1185,8 +1185,8 @@ describe('apply function', () => {
                     from: 'directory'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('adds the directory to the watch list', (done) => {
@@ -1195,13 +1195,13 @@ describe('apply function', () => {
                     from: 'directory'
                 }]
             })
-            .then((compilation) => {
-                const absFrom = path.join(HELPER_DIR, 'directory');
+          .then((compilation) => {
+              const absFrom = path.join(HELPER_DIR, 'directory');
 
-                expect(compilation.contextDependencies).to.have.members([absFrom]);
-            })
-            .then(done)
-            .catch(done);
+              expect(compilation.contextDependencies).to.have.members([absFrom]);
+          })
+          .then(done)
+          .catch(done);
         });
 
         it('only include files that have changed', (done) => {
@@ -1215,8 +1215,8 @@ describe('apply function', () => {
                     from: 'directory'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('include all files if copyUnmodified is true', (done) => {
@@ -1237,8 +1237,8 @@ describe('apply function', () => {
                     from: 'directory'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
 
         it('can move multiple files to a non-root directory with name, hash and ext', (done) => {
@@ -1253,8 +1253,8 @@ describe('apply function', () => {
                     to: 'nested/[path][name]-[hash:6].[ext]'
                 }]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
     });
 
@@ -1272,8 +1272,8 @@ describe('apply function', () => {
                     'noextension'
                 ]
             })
-            .then(done)
-            .catch(done);
+          .then(done)
+          .catch(done);
         });
     });
 
@@ -1295,8 +1295,8 @@ describe('apply function', () => {
                         from: 'directory/directoryfile.txt'
                     }]
                 })
-                .then(done)
-                .catch(done);
+              .then(done)
+              .catch(done);
             });
 
             it('ignores files when from is a directory', (done) => {
@@ -1314,8 +1314,8 @@ describe('apply function', () => {
                         from: 'directory'
                     }]
                 })
-                .then(done)
-                .catch(done);
+              .then(done)
+              .catch(done);
             });
 
             it('ignores files with a certain extension', (done) => {
@@ -1332,8 +1332,8 @@ describe('apply function', () => {
                         from: 'directory'
                     }]
                 })
-                .then(done)
-                .catch(done);
+              .then(done)
+              .catch(done);
             });
 
             it('ignores files that start with a dot', (done) => {
@@ -1359,8 +1359,8 @@ describe('apply function', () => {
                         from: '.'
                     }]
                 })
-                .then(done)
-                .catch(done);
+              .then(done)
+              .catch(done);
             });
 
             it('ignores all files except those with dots', (done) => {
@@ -1378,8 +1378,8 @@ describe('apply function', () => {
                         from: '.'
                     }]
                 })
-                .then(done)
-                .catch(done);
+              .then(done)
+              .catch(done);
             });
 
             it('ignores all files even if they start with a dot', (done) => {
@@ -1393,8 +1393,8 @@ describe('apply function', () => {
                     }]
 
                 })
-                .then(done)
-                .catch(done);
+              .then(done)
+              .catch(done);
             });
 
             it('ignores nested directory', (done) => {
@@ -1414,8 +1414,8 @@ describe('apply function', () => {
                     }]
 
                 })
-                .then(done)
-                .catch(done);
+              .then(done)
+              .catch(done);
             });
 
             if (path.sep === '/') {
@@ -1434,10 +1434,10 @@ describe('apply function', () => {
                         patterns: [{
                             from: '.'
                         }]
-    
+  
                     })
-                    .then(done)
-                    .catch(done);
+                  .then(done)
+                  .catch(done);
                 });
             }
 
@@ -1454,8 +1454,8 @@ describe('apply function', () => {
                         from: 'directory'
                     }]
                 })
-                .then(done)
-                .catch(done);
+              .then(done)
+              .catch(done);
             });
         });
 
@@ -1473,8 +1473,8 @@ describe('apply function', () => {
                         to: 'newdirectory'
                     }]
                 })
-                .then(done)
-                .catch(done);
+              .then(done)
+              .catch(done);
             });
 
             it('overrides webpack config context with relative path', (done) => {
@@ -1490,8 +1490,8 @@ describe('apply function', () => {
                         to: 'newdirectory'
                     }]
                 })
-                .then(done)
-                .catch(done);
+              .then(done)
+              .catch(done);
             });
 
             it('is overridden by pattern context', (done) => {
@@ -1508,8 +1508,8 @@ describe('apply function', () => {
                         to: 'newdirectory'
                     }]
                 })
-                .then(done)
-                .catch(done);
+              .then(done)
+              .catch(done);
             });
         });
 
@@ -1539,23 +1539,23 @@ describe('apply function', () => {
                         }
                     }]
                 })
-                .then(() => {
-                    return cacache
-                        .ls(cacheDir)
-                        .then((cacheEntries) => {
-                            const cacheKeys = Object.keys(cacheEntries);
+              .then(() => {
+                  return cacache
+                      .ls(cacheDir)
+                      .then((cacheEntries) => {
+                          const cacheKeys = Object.keys(cacheEntries);
 
-                            expect(cacheKeys).to.have.lengthOf(1);
+                          expect(cacheKeys).to.have.lengthOf(1);
 
-                            cacheKeys.forEach((cacheKey) => {
-                                const cacheEntry = new Function(`'use strict'\nreturn ${cacheKey}`)();
+                          cacheKeys.forEach((cacheKey) => {
+                              const cacheEntry = new Function(`'use strict'\nreturn ${cacheKey}`)();
 
-                                expect(cacheEntry.pattern.from).to.equal(from);
-                            });
-                        });
-                })
-                .then(done)
-                .catch(done);
+                              expect(cacheEntry.pattern.from).to.equal(from);
+                          });
+                      });
+              })
+              .then(done)
+              .catch(done);
             });
 
             it('files in directory should be cached', (done) => {
@@ -1582,23 +1582,23 @@ describe('apply function', () => {
                         }
                     }]
                 })
-                .then(() => {
-                    return cacache
-                        .ls(cacheDir)
-                        .then((cacheEntries) => {
-                            const cacheKeys = Object.keys(cacheEntries);
+              .then(() => {
+                  return cacache
+                      .ls(cacheDir)
+                      .then((cacheEntries) => {
+                          const cacheKeys = Object.keys(cacheEntries);
 
-                            expect(cacheKeys).to.have.lengthOf(3);
+                          expect(cacheKeys).to.have.lengthOf(3);
 
-                            cacheKeys.forEach((cacheKey) => {
-                                const cacheEntry = new Function(`'use strict'\nreturn ${cacheKey}`)();
+                          cacheKeys.forEach((cacheKey) => {
+                              const cacheEntry = new Function(`'use strict'\nreturn ${cacheKey}`)();
 
-                                expect(cacheEntry.pattern.from).to.equal(from);
-                            });
-                        });
-                })
-                .then(done)
-                .catch(done);
+                              expect(cacheEntry.pattern.from).to.equal(from);
+                          });
+                      });
+              })
+              .then(done)
+              .catch(done);
             });
 
             it('glob should be cached', (done) => {
@@ -1621,23 +1621,23 @@ describe('apply function', () => {
                         }
                     }]
                 })
-                .then(() => {
-                    return cacache
-                    .ls(cacheDir)
-                    .then((cacheEntries) => {
-                        const cacheKeys = Object.keys(cacheEntries);
+              .then(() => {
+                  return cacache
+                  .ls(cacheDir)
+                  .then((cacheEntries) => {
+                      const cacheKeys = Object.keys(cacheEntries);
 
-                        expect(cacheKeys).to.have.lengthOf(1);
+                      expect(cacheKeys).to.have.lengthOf(1);
 
-                        cacheKeys.forEach((cacheKey) => {
-                            const cacheEntry = new Function(`'use strict'\nreturn ${cacheKey}`)();
+                      cacheKeys.forEach((cacheKey) => {
+                          const cacheEntry = new Function(`'use strict'\nreturn ${cacheKey}`)();
 
-                            expect(cacheEntry.pattern.from).to.equal(from);
-                        });
-                    });
-                })
-                .then(done)
-                .catch(done);
+                          expect(cacheEntry.pattern.from).to.equal(from);
+                      });
+                  });
+              })
+              .then(done)
+              .catch(done);
             });
 
             it('file should be cached with custom cache key', (done) => {
@@ -1663,21 +1663,21 @@ describe('apply function', () => {
                         }
                     }]
                 })
-                .then(() => {
-                    return cacache
-                    .ls(cacheDir)
-                    .then((cacheEntries) => {
-                        const cacheKeys = Object.keys(cacheEntries);
+              .then(() => {
+                  return cacache
+                  .ls(cacheDir)
+                  .then((cacheEntries) => {
+                      const cacheKeys = Object.keys(cacheEntries);
 
-                        expect(cacheKeys).to.have.lengthOf(1);
+                      expect(cacheKeys).to.have.lengthOf(1);
 
-                        cacheKeys.forEach((cacheKey) => {
-                            expect(cacheKey).to.equal('foobar');
-                        });
-                    });
-                })
-                .then(done)
-                .catch(done);
+                      cacheKeys.forEach((cacheKey) => {
+                          expect(cacheKey).to.equal('foobar');
+                      });
+                  });
+              })
+              .then(done)
+              .catch(done);
             });
 
             it('binary file should be cached', (done) => {
@@ -1723,23 +1723,23 @@ describe('apply function', () => {
                         }
                     }]
                 })
-                .then(() => {
-                    return cacache
-                    .ls(cacheDir)
-                    .then((cacheEntries) => {
-                        const cacheKeys = Object.keys(cacheEntries);
+              .then(() => {
+                  return cacache
+                  .ls(cacheDir)
+                  .then((cacheEntries) => {
+                      const cacheKeys = Object.keys(cacheEntries);
 
-                        expect(cacheKeys).to.have.lengthOf(1);
+                      expect(cacheKeys).to.have.lengthOf(1);
 
-                        cacheKeys.forEach((cacheKey) => {
-                            const cacheEntry = new Function(`'use strict'\nreturn ${cacheKey}`)();
+                      cacheKeys.forEach((cacheKey) => {
+                          const cacheEntry = new Function(`'use strict'\nreturn ${cacheKey}`)();
 
-                            expect(cacheEntry.pattern.from).to.equal(from);
-                        });
-                    });
-                })
-                .then(done)
-                .catch(done);
+                          expect(cacheEntry.pattern.from).to.equal(from);
+                      });
+                  });
+              })
+              .then(done)
+              .catch(done);
             });
 
             after(() => cacache.rm.all(cacheDir));
