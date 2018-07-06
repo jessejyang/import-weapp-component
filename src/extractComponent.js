@@ -1,15 +1,18 @@
-import path from 'path';
+import path, { isAbsolute, resolve } from 'path';
 import fs from 'fs';
 
 let globalCompilation; // 主要用于`errors.push`
 
 const jsonRE = /\/.+\.json$/;
-function getFileDir (file) { // must be json file
-    return path.parse(file).dir;
+function getPathParse (filePath) {
+    return path.parse(filePath);
 }
-function getFileName (path) {
-    return path.slice(path.lastIndexOf('/') + 1);
+function getFileDir (path) { // must be json file
+    return getPathParse(path).dir;
 }
+// function getFileName (path) {
+//     return getPathParse(path).name;
+// }
 
 function pushError (err) {
     err = typeof err === 'string' ? new Error(err) : err;
@@ -40,27 +43,31 @@ function addComponentsFromPath (path, components, parent) {
         let json = fs.readFileSync(path, 'utf8');
         addComponentsFromJson(json, components, parent, path);
     } else {
-        pushError(`${path} not exist component`);
+        pushError(`Component is not found in path "${path}"(not found json)`);
     }
 }
 
 function generatorPattern (from, to, components, parent) {
-    if (fs.existsSync(from)) {
-        addComponentsFromPath(`${from}/index.json`, components, getFileDir(parent));
-        return {
-            from,
-            to,
-            fromType: 'dir'
-        };
-    } else if (fs.existsSync(`${from}.js`)) {
-        let fromDir = getFileDir(from);
-        let fileName = getFileName(from);
-        addComponentsFromPath(`${from}.json`, components, getFileDir(parent));
+    // 删除此情况，因为小程序不支持直接目录引入组件
+    // if (fs.existsSync(from)) {
+    //     addComponentsFromPath(`${from}/index.json`, components, getFileDir(parent));
+    //     return {
+    //         from,
+    //         to,
+    //         fromType: 'dir'
+    //     };
+    // } else 
+    const { dir: fromDir, name: fromName } = getPathParse(from);
+    // 为了与小程序保持一致，仅判断`from.js`是否存在
+    if (fs.existsSync(`${from}.js`)) {
+        addComponentsFromPath(`${fromDir}/${fromName}.json`, components, getFileDir(parent));
         return {
             from: fromDir,
             to: getFileDir(to),
-            test: new RegExp(`${fileName}.(json|js|wxml|wxss)$`)
+            test: new RegExp(`${fromName}.(json|js|wxml|wxss)$`)
         };
+    } else {
+        pushError(`Component is not found in path "${from}"(not found js)`);
     }
 }
 
@@ -86,13 +93,13 @@ export default function extractComponent (compilation) {
             for (let j = 0; j < components.length; j++) {
                 let path = components[j];
                 if (path) {
-                    let from = path.isAbsolute(path)
+                    let from = isAbsolute(path)
                         ? `${projectContext}${path}`
-                        : path.resolve(context, path);
+                        : resolve(context, path);
     
-                    let to = path.isAbsolute(path)
+                    let to = isAbsolute(path)
                         ? path
-                        : path.resolve(`/${getFileDir(file)}`, path); // 以输出路径为最上级路径
+                        : resolve(`/${getFileDir(file)}`, path); // 以输出路径为最上级路径
                     to = to.slice(1); // 去除 / 绝对定位参照
     
                     let pattern = generatorPattern(from, to, components, components[j]);
