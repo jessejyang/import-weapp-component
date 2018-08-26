@@ -6,6 +6,8 @@ License: MIT
 
 简介：根据`json`文件`usingComponents`自动引入组件
 
+支持最新版本`mpvue`, 请按照如下用法进行配置
+
 -----------
 
 <div align="center">
@@ -31,7 +33,10 @@ const ImportComponent = require('import-weapp-component')
 
 const config = {
   plugins: [
-    new ImportComponent()
+    new ImportComponent({
+      src: path.resolve(__dirname, '../src'), // 引用组件或原生页面的目录
+      native: true // 将 src 目录中的原生 page 复制到 dist
+    })
   ]
 }
 ```
