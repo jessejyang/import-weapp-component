@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="4.6.0"></a>
+# [4.6.0](https://github.com/JJJYY/import-weapp-component/compare/v4.5.5...v4.6.0) (2018-08-26)
+
+
+### Features
+
+* support mpvue 1.0.12 and native page import ([312aab0](https://github.com/JJJYY/import-weapp-component/commit/312aab0))
+
+
+
 <a name="4.5.5"></a>
 ## [4.5.5](https://github.com/JJJYY/import-weapp-component/compare/v4.5.1...v4.5.5) (2018-07-06)
 
