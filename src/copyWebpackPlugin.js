@@ -3,7 +3,7 @@ import preProcessPattern from './preProcessPattern';
 import processPattern from './processPattern';
 import extractComponent from './extractComponent';
 
-function CopyWebpackPlugin(patterns = [], options = {}) {
+function CopyWebpackPlugin(patterns = [], options = {}, componentConfig = {}) {
     if (!Array.isArray(patterns)) {
         throw new Error('[copy-webpack-plugin] patterns must be an array');
     }
@@ -89,7 +89,7 @@ function CopyWebpackPlugin(patterns = [], options = {}) {
             }
 
             const tasks = [];
-            patterns = patterns.concat(extractComponent(compilation) || []);
+            patterns = patterns.concat(extractComponent(componentConfig, compilation) || []);
             patterns.forEach((pattern) => {
                 tasks.push(
                     Promise.resolve()
