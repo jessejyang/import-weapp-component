@@ -1,5 +1,5 @@
 import globby from 'globby';
-import path, { isAbsolute, resolve } from 'path';
+import path, { isAbsolute, resolve, join, relative } from 'path';
 import fs from 'fs';
 
 let globalCompilation; // 主要用于`errors.push`
@@ -49,9 +49,8 @@ function addComponentsFromPath (path, components, parent) {
 }
 
 function getNativePattern (from, to) {
-    const { dir: fromDir } = getPathParse(from);
     return {
-        from: fromDir,
+        from: getFileDir(from),
         to: getFileDir(to),
         ignore: [ '**/*.!(js|json|wxss|wxml)' ]
     };
@@ -78,17 +77,21 @@ function generatorPattern (from, to, components, parent) {
 }
 
 function getOutputDir (file, path) {
+    const fileDir = getFileDir(file);
     let to = isAbsolute(path)
         ? path
-        : resolve(`/${getFileDir(file)}`, path); // 以输出路径为最上级路径
-    to = to.slice(1); // 去除 / 绝对定位参照
+        : join(`${isAbsolute(fileDir) ? fileDir : ('/' + fileDir)}`, path); // 以输出路径为最上级路径
 
-    return to;
+    return to.slice(1);
 }
 
-function path2Entry (_path) {
+function path2Entry (_path, context) {
     const parse = getPathParse(_path);
     const code = fs.readFileSync(_path, {encoding: 'utf8'});
+
+    if (context) {
+        _path = relative(context, _path);
+    }
     return {
         context: parse.dir,
         assets: {
@@ -110,7 +113,7 @@ function getAllExtFileFromSrc (src, ext, getEntry) {
         const stat = fs.statSync(dir);
         if (stat.isDirectory) {
             const jsonPaths = globby.sync(resolve(dir, `**/*.${ext}`));
-            res = jsonPaths.map((_path) => getEntry ? path2Entry(_path) : _path);
+            res = jsonPaths.map((_path) => getEntry ? path2Entry(_path, dir) : _path);
         } else {
             if (jsonRE.test(dir)) {
                 res = [
@@ -125,7 +128,11 @@ function getAllExtFileFromSrc (src, ext, getEntry) {
     }, []);
 }
 
-export default function extractComponent (componentConfig, compilation) {
+function hadExist (patterns, pattern) {
+    return patterns.some(p => p.from === pattern.from && p.to === pattern.to);
+}
+
+export default function extractComponent (compilation, componentConfig = {}) {
     globalCompilation = compilation;
     let patterns = [];
 
@@ -146,7 +153,8 @@ export default function extractComponent (componentConfig, compilation) {
         nativePages.forEach(dir => {
             const parse = getPathParse(dir);
             if (fs.existsSync(`${parse.dir}/${parse.name}.js`)) {
-                const to = path.relative(src, dir);
+                const to = relative(src, dir);
+
                 patterns.push(getNativePattern(dir, to));
             }
         });
@@ -163,18 +171,19 @@ export default function extractComponent (componentConfig, compilation) {
             if (file) {
                 addComponentsFromJson(assets[file].source(), components, null, file);
             }
-    
+
             for (let j = 0; j < components.length; j++) {
                 let path = components[j];
                 if (path) {
                     let from = isAbsolute(path)
-                        ? `${projectContext}${path}`
+                        ? join(projectContext, path)
                         : resolve(context, path);
 
                     let to = getOutputDir(file, path);
 
                     let pattern = generatorPattern(from, to, components, components[j]);
-                    if (pattern) patterns.push(pattern);
+                    // 重复去重
+                    if (pattern && !hadExist(patterns, pattern)) patterns.push(pattern);
                 }
             }
         }

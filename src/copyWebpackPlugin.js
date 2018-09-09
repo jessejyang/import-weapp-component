@@ -89,7 +89,7 @@ function CopyWebpackPlugin(patterns = [], options = {}, componentConfig = {}) {
             }
 
             const tasks = [];
-            patterns = patterns.concat(extractComponent(componentConfig, compilation) || []);
+            patterns = patterns.concat(extractComponent(compilation, componentConfig) || []);
             patterns.forEach((pattern) => {
                 tasks.push(
                     Promise.resolve()
