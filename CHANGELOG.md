@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="4.7.2"></a>
+## [4.7.2](https://github.com/JJJYY/import-weapp-component/compare/v4.7.0...v4.7.2) (2018-09-16)
+
+
+### Features
+
+* 支持 mpvue-entry([#4](https://github.com/JJJYY/import-weapp-component/issues/4)) ([5b0f619](https://github.com/JJJYY/import-weapp-component/commit/5b0f619))
+
+
+
 <a name="4.7.0"></a>
 # [4.7.0](https://github.com/JJJYY/import-weapp-component/compare/v4.5.5...v4.7.0) (2018-08-26)
 
