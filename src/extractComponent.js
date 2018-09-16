@@ -4,6 +4,10 @@ import fs from 'fs';
 
 let globalCompilation; // 主要用于`errors.push`
 
+function isPlainObject (_any) {
+    return Object.prototype.toString.call(_any) === '[object Object]';
+}
+
 const jsonRE = /\/.+\.json$/;
 function getPathParse (filePath) {
     return path.parse(filePath);
@@ -78,30 +82,34 @@ function generatorPattern (from, to, components, parent) {
 
 function getOutputDir (file, path) {
     const fileDir = getFileDir(file);
-    let to = isAbsolute(path)
+    const to = isAbsolute(path)
         ? path
         : join(`${isAbsolute(fileDir) ? fileDir : ('/' + fileDir)}`, path); // 以输出路径为最上级路径
 
     return to.slice(1);
 }
 
-function path2Entry (_path, context) {
-    const parse = getPathParse(_path);
-    const code = fs.readFileSync(_path, {encoding: 'utf8'});
-
-    if (context) {
-        _path = relative(context, _path);
-    }
+function getEntry (name, code, context) {
     return {
-        context: parse.dir,
+        context,
         assets: {
-            [_path]: {
+            [name]: {
                 source () {
                     return code;
                 }
             }
         }
     };
+}
+
+function path2Entry (_path, context) {
+    const parse = getPathParse(_path);
+    const code = fs.readFileSync(_path, { encoding: 'utf8' });
+
+    if (context) {
+        _path = relative(context, _path);
+    }
+    return getEntry(_path, code, parse.dir);
 }
 
 function getAllExtFileFromSrc (src, ext, getEntry) {
@@ -128,6 +136,29 @@ function getAllExtFileFromSrc (src, ext, getEntry) {
     }, []);
 }
 
+// 从 object 或 array 中获取所有 usingComponent
+// allUsingComponents 可能为 string 或 object
+function getAllUsing (allUsingComponents, entries = [], context = '') {
+    if (Array.isArray(allUsingComponents)) {
+        allUsingComponents.forEach(item => getAllUsing(item, entries, context));
+    } else if (isPlainObject(allUsingComponents)) {
+        Object.keys(allUsingComponents).forEach(key => {
+            const value = allUsingComponents[key];
+            if (key === 'usingComponents') {
+                const file = context + '.json';
+                const parse = getPathParse(file);
+                entries.push(getEntry(file, JSON.stringify({ usingComponents: value }), parse.dir));
+            } else if (key === 'path') {
+                context = value;
+            } else {
+                getAllUsing(value, entries, context);
+            }
+        });
+    }
+
+    return entries;
+}
+
 function hadExist (patterns, pattern) {
     return patterns.some(p => p.from === pattern.from && p.to === pattern.to);
 }
@@ -138,16 +169,25 @@ export default function extractComponent (compilation, componentConfig = {}) {
 
     let entries = compilation.entries ? compilation.entries.slice(0) : [];
 
-    const projectContext = (compilation.options || {}).context || '';
-    let { src, native } = componentConfig;
+    let projectContext = (compilation.options || {}).context || '';
+    const { src, native, usingComponents } = componentConfig;
 
     // 增加对最新版本 mpvue 的支持
     if (src) {
         entries = entries.concat(getAllExtFileFromSrc(src, 'json', true));
     }
 
-    // TODO: 目前输出目录存在问题，parse.dir 错误，多了 src，
-    // 拷贝会将所有文件全部拷贝，正则无效了，如果正则有效应该不会复制 vue 文件
+    if (usingComponents) {
+        try {
+            const allUsingComponents = require(usingComponents);
+            entries = entries.concat(getAllUsing(allUsingComponents));
+            // 修改 projectContext
+            projectContext = getPathParse(usingComponents).dir;
+        } catch (e) {
+            pushError(e);
+        }
+    }
+
     if (native && projectContext) {
         const nativePages = getAllExtFileFromSrc(src, 'wxml');
         nativePages.forEach(dir => {
@@ -173,15 +213,15 @@ export default function extractComponent (compilation, componentConfig = {}) {
             }
 
             for (let j = 0; j < components.length; j++) {
-                let path = components[j];
+                const path = components[j];
                 if (path) {
-                    let from = isAbsolute(path)
+                    const from = isAbsolute(path)
                         ? join(projectContext, path)
-                        : resolve(context, path);
+                        : resolve(projectContext, context, path);
 
-                    let to = getOutputDir(file, path);
+                    const to = getOutputDir(file, path);
 
-                    let pattern = generatorPattern(from, to, components, components[j]);
+                    const pattern = generatorPattern(from, to, components, components[j]);
                     // 重复去重
                     if (pattern && !hadExist(patterns, pattern)) patterns.push(pattern);
                 }

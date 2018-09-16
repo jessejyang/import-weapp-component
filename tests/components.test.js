@@ -173,7 +173,7 @@ describe('generator patterns when emit', () => {
     });
 });
 
-// 高版本 mpvue-loader
+// mpvue-loader v1.1.0 以上
 describe('generator patterns read json path', () => {
     const config = {
         src: resolve()
@@ -207,6 +207,27 @@ describe('generator patterns read json path', () => {
                     src: resolve(),
                     native: true
                 }
+            })
+            .then(done)
+            .catch(done);
+        });
+    });
+});
+
+describe('compatible with', () => {
+    const config = {
+        usingComponents: resolve('entries.js')
+    };
+
+    describe('mpvue-entry', () => {
+        it('form entries config', (done) => {
+            const components = [
+                'components/button',
+                'components/panel'
+            ];
+            run({
+                components,
+                config
             })
             .then(done)
             .catch(done);
