@@ -39,14 +39,18 @@ function run (opts) {
         }, opts.compilation);
         
         const patterns = extractComponent(compilation, opts.config);
-            
-        const expectPatterns = opts.components.map(comp => {
+        console.log(patterns);
+
+        let expectPatterns = opts.components.map(comp => {
             return {
                 from: resolve(comp),
                 to: comp,
                 ignore: [ '**/*.!(js|json|wxss|wxml)' ]
             };
         });
+        if (opts.dependencies) {
+            expectPatterns = expectPatterns.concat(opts.dependencies);
+        }
         if (expect(patterns).to.have.deep.members(expectPatterns)) {
             res();
         } else {
@@ -228,6 +232,44 @@ describe('compatible with', () => {
             run({
                 components,
                 config
+            })
+            .then(done)
+            .catch(done);
+        });
+    });
+});
+
+describe('component depends other', () => {
+    describe('require function', () => {
+        it('from component', (done) => {
+            const components = [
+                'components/comp1'
+            ];
+            run({
+                components,
+                compilation: {
+                    entries: generatorEntries([
+                        {
+                            name: 'pages/normal/index.json',
+                            context: resolve('pages/normal'),
+                            content: {
+                                usingComponents: {
+                                    panel: '/components/comp1/index'
+                                }
+                            }
+                        }
+                    ])
+                },
+                dependencies: [
+                    {
+                        from: resolve('components/base/Page.js'),
+                        to: 'components/base/Page.js'
+                    },
+                    {
+                        from: resolve('components/base/Dep/index.js'),
+                        to: 'components/base/Dep/index.js'
+                    }
+                ]
             })
             .then(done)
             .catch(done);

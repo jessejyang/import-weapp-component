@@ -1,8 +1,11 @@
 import globby from 'globby';
 import path, { isAbsolute, resolve, join, relative } from 'path';
 import fs from 'fs';
+import fetchModules from './fetchModules';
 
 let globalCompilation; // 主要用于`errors.push`
+
+const dependencies = new Set();
 
 function isPlainObject (_any) {
     return Object.prototype.toString.call(_any) === '[object Object]';
@@ -61,18 +64,13 @@ function getNativePattern (from, to) {
 }
 
 function generatorPattern (from, to, components, parent) {
-    // 删除此情况，因为小程序不支持直接目录引入组件
-    // if (fs.existsSync(from)) {
-    //     addComponentsFromPath(`${from}/index.json`, components, getFileDir(parent));
-    //     return {
-    //         from,
-    //         to,
-    //         fromType: 'dir'
-    //     };
-    // } else 
     const { dir: fromDir, name: fromName } = getPathParse(from);
+    const filePath = `${from}.js`;
+
     // 为了与小程序保持一致，仅判断`from.js`是否存在
-    if (fs.existsSync(`${from}.js`)) {
+    if (fs.existsSync(filePath)) {
+        // 读取需要复制的 js 文件找出其依赖项，并添加到复制项
+        dependencies.add(filePath);
         addComponentsFromPath(`${fromDir}/${fromName}.json`, components, getFileDir(parent));
         return getNativePattern(from, to);
     } else {
@@ -164,6 +162,8 @@ function hadExist (patterns, pattern) {
 }
 
 export default function extractComponent (compilation, componentConfig = {}) {
+    dependencies.clear();
+
     globalCompilation = compilation;
     let patterns = [];
 
@@ -192,7 +192,20 @@ export default function extractComponent (compilation, componentConfig = {}) {
         const nativePages = getAllExtFileFromSrc(src, 'wxml');
         nativePages.forEach(dir => {
             const parse = getPathParse(dir);
-            if (fs.existsSync(`${parse.dir}/${parse.name}.js`)) {
+            const filePath = `${parse.dir}/${parse.name}.js`;
+            const jsonPath = `${parse.dir}/${parse.name}.json`;
+            if (fs.existsSync(filePath)) {
+                if (fs.existsSync(jsonPath)) {
+                    let json = fs.readFileSync(jsonPath, { encoding: 'utf8' });
+                    if (json) {
+                        json = JSON.parse(json);
+                        // 剔除组件
+                        if (json.component) {
+                            return;
+                        }
+                    }
+                }
+                dependencies.add(filePath);
                 const to = relative(src, dir);
 
                 patterns.push(getNativePattern(dir, to));
@@ -227,6 +240,9 @@ export default function extractComponent (compilation, componentConfig = {}) {
                 }
             }
         }
+
+        // 根据 dependencies 列表得到需要复制的依赖文件
+        patterns = patterns.concat(fetchModules(dependencies, projectContext));
     }
 
     return patterns;

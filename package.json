@@ -6,7 +6,7 @@
   "license": "MIT",
   "main": "dist/index.js",
   "engines": {
-    "node": ">= 4"
+    "node": ">= 6"
   },
   "files": [
     "dist"
@@ -21,14 +21,16 @@
     "build:tests": "babel tests/ --out-dir compiled_tests/ && rimraf compiled_tests/helpers && ncp tests/helpers compiled_tests/helpers && ncp tests/weappHelpers compiled_tests/weappHelpers && node scripts/createSpecialDirectory.js"
   },
   "dependencies": {
-    "globby": "^7.1.1",
+    "acorn": "^6.0.2",
     "cacache": "^10.0.4",
+    "estree-walker": "^0.5.2",
     "find-cache-dir": "^1.0.0",
-    "serialize-javascript": "^1.4.0",
+    "globby": "^7.1.1",
     "is-glob": "^4.0.0",
     "loader-utils": "^1.1.0",
     "minimatch": "^3.0.4",
-    "p-limit": "^1.0.0"
+    "p-limit": "^1.0.0",
+    "serialize-javascript": "^1.4.0"
   },
   "devDependencies": {
     "babel-cli": "^6.8.0",
