@@ -1,6 +1,6 @@
 {
   "name": "import-weapp-component",
-  "version": "4.7.2",
+  "version": "4.7.3",
   "description": "import weapp native component for mpvue",
   "author": "Jesse Yang",
   "license": "MIT",

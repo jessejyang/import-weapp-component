@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="4.7.3"></a>
+## [4.7.3](https://github.com/JJJYY/import-weapp-component/compare/v4.7.2...v4.7.3) (2018-11-04)
+
+
+### Features
+
+* support copy dependencies file ([f557296](https://github.com/JJJYY/import-weapp-component/commit/f557296))
+
+
+
 <a name="4.7.2"></a>
 ## [4.7.2](https://github.com/JJJYY/import-weapp-component/compare/v4.7.0...v4.7.2) (2018-09-16)
 
